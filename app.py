@@ -63,15 +63,35 @@ from zoneinfo import ZoneInfo  # Python 3.9+
 def update_and_display():
     # Get current UTC time
     current_time_utc = datetime.now(ZoneInfo('UTC'))
-    
+
     # Convert to Eastern Time (handles daylight saving automatically)
     current_time_eastern = current_time_utc.astimezone(ZoneInfo('America/New_York'))
-    
-    # Calculate UV index
-    uv_index = calculate_uv_index_with_clouds(LIVONIA_LAT, LIVONIA_LONG, current_time_eastern)
-    
-    # Get weather data
+
+    # Get weather data FIRST so we can extract parameters for UV calculation
     weather_data = get_weather_data(LIVONIA_LAT, LIVONIA_LONG)
+
+    # Extract cloud cover, temperature (convert to Celsius if needed), and weather description
+    if weather_data:
+        cloud_cover_percent = weather_data.get('cloud_cover', 0)
+        # If your API provides temperature in Fahrenheit, convert to Celsius:
+        temperature_f = weather_data.get('temperature')
+        temperature = (temperature_f - 32) * 5.0 / 9.0 if temperature_f is not None else None
+        weather_description = weather_data.get('description', '')
+    else:
+        cloud_cover_percent = 0
+        temperature = None
+        weather_description = ''
+
+    # Calculate UV index with new API
+    uv_index = calculate_uv_index_with_clouds(
+        LIVONIA_LAT,
+        LIVONIA_LONG,
+        cloud_cover_percent,
+        temperature,
+        weather_description
+    )
+
+    # --- (rest of your code remains unchanged) ---
 
     # Display header
     st.title(f"Weather & UV Index for {LOCATION_NAME}")
@@ -85,8 +105,6 @@ def update_and_display():
         st.markdown("## UV Index")
         uv_color = get_uv_color(uv_index)
         uv_category = get_uv_category(uv_index)
-        
-        # Create a custom HTML widget for UV Index
         st.markdown(
             f"""
             <div style="background-color: {uv_color}; padding: 20px; border-radius: 10px; text-align: center;">
@@ -96,53 +114,16 @@ def update_and_display():
             """,
             unsafe_allow_html=True
         )
-        
         st.markdown("### Recommendations")
         st.info(get_uv_recommendations(uv_index))
 
     # Display Weather in second column
     with col2:
         st.markdown("## Current Weather")
-        
         if weather_data:
-            # Temperature
             st.markdown(f"### Temperature: {weather_data['temperature']}°F")
-            
-            # Weather condition
             st.markdown(f"### Conditions: {weather_data['description']}")
-            
-            # Additional data
             st.markdown(f"### Humidity: {weather_data['humidity']}%")
             st.markdown(f"### Wind: {weather_data['wind_speed']} mph")
         else:
             st.error("Unable to retrieve weather data. Please try again later.")
-
-# Main app execution
-if __name__ == "__main__":
-    # Add auto-refresh using a placeholder and empty
-    refresh_placeholder = st.empty()
-    
-    # Initial display
-    update_and_display()
-    
-    # Auto-refresh info
-    st.markdown("---")
-    st.info(f"Data automatically refreshes every 15 minutes. You can also refresh manually by reloading the page.")
-    
-    # Set up auto-refresh functionality
-    with st.sidebar:
-        st.title("About")
-        st.write("""
-        This app displays the current UV index and weather conditions for Livonia, Michigan.
-        
-        The UV index is calculated using scientific formulas based on:
-        - Solar position
-        - Date and time
-        - Location coordinates
-        - Atmospheric conditions
-        
-        Weather data is provided by the National Weather Service (NWS).
-        """)
-        
-        if st.button("Refresh Data Now"):
-            st.rerun()
