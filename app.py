@@ -57,6 +57,6 @@ def get_weather_data_cached(lat, lon):
     return raw_get_weather_data(lat, lon)
 
 def update_and_display():
-    """
-    Main function to fetch
-
+    doc = """
+This is a multi-line string.
+"""
