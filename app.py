@@ -66,7 +66,8 @@ from zoneinfo import ZoneInfo
 # Get current time in Eastern Time
 eastern_now = datetime.now(ZoneInfo("America/New_York"))
 print("Current Eastern Time:", eastern_now.strftime("%Y-%m-%d %H:%M:%S"))
-    # Get weather and atmospheric data
+    
+# Get weather and atmospheric data
     weather_data = get_cached_weather_data(LIVONIA_LAT, LIVONIA_LONG)
     cloud_cover = weather_data.get('cloud_cover', 0) if weather_data else 0
     ozone_column = get_cached_ozone_data(LIVONIA_LAT, LIVONIA_LONG)
