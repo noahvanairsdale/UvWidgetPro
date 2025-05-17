@@ -82,18 +82,23 @@ def update_and_display():
 
     # Display UV Index in first column
     with col1:
+        st.markdown("## UV Index")
+        uv_color = get_uv_color(uv_index)
+        uv_category = get_uv_category(uv_index)
+        
+        # Create a custom HTML widget for UV Index
         st.markdown(
-    f"""
-    <div style="background-color: #A2E8E4; padding: 20px; border-radius: 10px; text-align: center;">
-        <h1 style="color: white; font-size: 48px; margin: 0;">{uv_index:.1f}</h1>
-        <h3 style="color: white; margin: 5px 0;">{uv_category}</h3>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown("### Recommendations")
-st.info(get_uv_recommendations(uv_index))
+            f"""
+            <div style="background-color: {uv_color}; padding: 20px; border-radius: 10px; text-align: center;">
+                <h1 style="color: white; font-size: 48px; margin: 0;">{uv_index:.1f}</h1>
+                <h3 style="color: white; margin: 5px 0;">{uv_category}</h3>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        st.markdown("### Recommendations")
+        st.info(get_uv_recommendations(uv_index))
 
     # Display Weather in second column
     with col2:
