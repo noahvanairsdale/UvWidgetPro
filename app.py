@@ -76,9 +76,9 @@ aod = 0.1  # Placeholder; replace with actual AOD data if available
 # Calculate UV index
 uv_index = calculate_uv_index(LIVONIA_LAT, LIVONIA_LONG, current_time, cloud_cover, ozone_column, aod)
     
-    # Display header
-    st.title(f"Weather & UV Index for {LOCATION_NAME}")
-    st.subheader(f"Last updated: {current_time.strftime('%B %d, %Y %I:%M %p')}")
+# Display header
+st.title(f"Weather & UV Index for {LOCATION_NAME}")
+st.subheader(f"Last updated: {current_time.strftime('%B %d, %Y %I:%M %p')}")
     
     col1, col2 = st.columns(2)
     
