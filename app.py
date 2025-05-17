@@ -1,62 +1,113 @@
 import streamlit as st
-from datetime import datetime
-from zoneinfo import ZoneInfo  # Python 3.9+
-from uv_calculator import calculate_uv_index_with_clouds
-from weather_service import get_weather_data as raw_get_weather_data
+import datetime
+import requests
+from uv_index_calculator import calculate_uv_index
+from weather_service import get_weather_data, get_ozone_data, get_epa_uv_index
 
-# Page configuration
-st.set_page_config(
-    page_title="Livonia UV & Weather",
-    page_icon="🌤️",
-    layout="wide"
-)
-
-# Constants
-LIVONIA_LAT = 42.3834
+# Constants for Livonia, Michigan
+LIVONIA_LAT = 42.3684
 LIVONIA_LONG = -83.3527
 LOCATION_NAME = "Livonia, Michigan"
 
-# UV index thresholds and related info
-UV_LEVELS = [
-    {"max": 3, "color": "green", "category": "Low", "recommendation": "Wear sunglasses on bright days. If you burn easily, cover up and use sunscreen."},
-    {"max": 6, "color": "yellow", "category": "Moderate", "recommendation": "Take precautions - cover up, wear a hat, sunglasses, and sunscreen. Seek shade during midday hours."},
-    {"max": 8, "color": "orange", "category": "High", "recommendation": "Protection required - UV damages skin and can cause sunburn. Reduce time in the sun between 11am-4pm."},
-    {"max": 11, "color": "red", "category": "Very High", "recommendation": "Extra protection needed - unprotected skin will be damaged and can burn quickly. Avoid the sun between 11am-4pm."},
-    {"max": float('inf'), "color": "purple", "category": "Extreme", "recommendation": "Take all precautions - unprotected skin can burn in minutes. Avoid the sun between 11am-4pm, wear a hat, sunglasses and sunscreen."}
-]
+# Helper functions
+def get_uv_color(uv_index):
+    if uv_index < 3:
+        return "#00FF00"  # Green (Low)
+    elif uv_index < 6:
+        return "#FFFF00"  # Yellow (Moderate)
+    elif uv_index < 8:
+        return "#FFA500"  # Orange (High)
+    elif uv_index < 11:
+        return "#FF0000"  # Red (Very High)
+    else:
+        return "#800080"  # Purple (Extreme)
 
-def get_uv_info(uv_index):
-    """
-    Get UV color, category, and recommendation based on the UV index value.
+def get_uv_category(uv_index):
+    if uv_index < 3:
+        return "Low"
+    elif uv_index < 6:
+        return "Moderate"
+    elif uv_index < 8:
+        return "High"
+    elif uv_index < 11:
+        return "Very High"
+    else:
+        return "Extreme"
 
-    Args:
-        uv_index (float): The UV index value.
+def get_uv_recommendations(uv_index):
+    if uv_index < 3:
+        return "Minimal risk. No protection needed."
+    elif uv_index < 6:
+        return "Wear sunglasses and sunscreen if outdoors for extended periods."
+    elif uv_index < 8:
+        return "Use sunscreen SPF 30+, wear protective clothing, hat, and sunglasses."
+    elif uv_index < 11:
+        return "Take extra precautions: SPF 30+ sunscreen, protective clothing, avoid midday sun."
+    else:
+        return "Avoid sun exposure between 10 AM and 4 PM, use maximum protection."
 
-    Returns:
-        tuple: (color, category, recommendation)
-    """
-    for level in UV_LEVELS:
-        if uv_index < level["max"]:
-            return level["color"], level["category"], level["recommendation"]
-    # Fallback
-    return "gray", "Unknown", "No recommendation available."
+# Cache weather and ozone data to reduce API calls
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def get_cached_weather_data(lat, lon):
+    return get_weather_data(lat, lon)
 
-def get_contrasting_text_color(bg_color):
-    """
-    Given a background color, return 'black' or 'white' for best contrast.
-    Limited to standard color names in UV_LEVELS for now.
-    """
-    dark_colors = {"green", "orange", "red", "purple"}
-    return "white" if bg_color in dark_colors else "black"
+@st.cache_data(ttl=3600)
+def get_cached_ozone_data(lat, lon):
+    return get_ozone_data(lat, lon)
 
-@st.cache_data(show_spinner=False)
-def get_weather_data_cached(lat, lon):
-    """
-    Cached wrapper for weather data retrieval.
-    """
-    return raw_get_weather_data(lat, lon)
+@st.cache_data(ttl=3600)
+def get_cached_epa_uv_index(lat, lon):
+    return get_epa_uv_index(lat, lon)
 
+# Main app
 def update_and_display():
-    doc = """
-This is a multi-line string.
-"""
+    current_time = datetime.datetime.now()
+    
+    # Get weather and atmospheric data
+    weather_data = get_cached_weather_data(LIVONIA_LAT, LIVONIA_LONG)
+    cloud_cover = weather_data.get('cloud_cover', 0) if weather_data else 0
+    ozone_column = get_cached_ozone_data(LIVONIA_LAT, LIVONIA_LONG)
+    aod = 0.1  # Placeholder; replace with actual AOD data if available
+    
+    # Calculate UV index
+    uv_index = calculate_uv_index(LIVONIA_LAT, LIVONIA_LONG, current_time, cloud_cover, ozone_column, aod)
+    
+    # Display header
+    st.title(f"Weather & UV Index for {LOCATION_NAME}")
+    st.subheader(f"Last updated: {current_time.strftime('%B %d, %Y %I:%M %p')}")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("## UV Index")
+        uv_color = get_uv_color(uv_index)
+        uv_category = get_uv_category(uv_index)
+        st.markdown(
+            f"""
+            <div style="background-color: {uv_color}; padding: 20px; border-radius: 10px; text-align: center;">
+                <h1 style="color: white; font-size: 48px; margin: 0;">{uv_index:.1f}</h1>
+                <h3 style="color: white; margin: 5px 0;">{uv_category}</h3>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        # Display EPA UV index for comparison
+        epa_uv = get_cached_epa_uv_index(LIVONIA_LAT, LIVONIA_LONG)
+        if epa_uv is not None:
+            st.markdown(f"**EPA UV Index**: {epa_uv:.1f} (Reference)")
+            st.markdown(f"**Difference**: {abs(uv_index - epa_uv):.1f}")
+        st.markdown("### Recommendations")
+        st.info(get_uv_recommendations(uv_index))
+    
+    with col2:
+        st.markdown("## Weather")
+        if weather_data:
+            st.markdown(f"**Temperature**: {weather_data['temperature']}°F")
+            st.markdown(f"**Conditions**: {weather_data['shortForecast']}")
+            st.markdown(f"**Humidity**: {weather_data.get('relativeHumidity', 'N/A')}%")
+            st.markdown(f"**Wind**: {weather_data.get('windSpeed', 'N/A')} {weather_data.get('windDirection', '')}")
+        else:
+            st.warning("Weather data unavailable.")
+
+if __name__ == "__main__":
+    update_and_display()
