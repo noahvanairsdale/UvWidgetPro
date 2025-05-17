@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 import datetime
-from uv_index_calculator import calculate_uv_index
+from uv_index_calculator import calculate_uv_index_with_clouds
 from weather_service import get_weather_data
 
 # Page configuration
