@@ -57,19 +57,25 @@ def get_uv_recommendations(uv_index):
         return "Take all precautions - unprotected skin can burn in minutes. Avoid the sun between 11am-4pm, wear a hat, sunglasses and sunscreen."
 
 # Main function to update data and display widgets
+from datetime import datetime
+from zoneinfo import ZoneInfo  # Python 3.9+
+
 def update_and_display():
-    # Get current time
-    current_time = datetime.datetime.now()
+    # Get current UTC time
+    current_time_utc = datetime.now(ZoneInfo('UTC'))
+    
+    # Convert to Eastern Time (handles daylight saving automatically)
+    current_time_eastern = current_time_utc.astimezone(ZoneInfo('America/New_York'))
     
     # Calculate UV index
-    uv_index = calculate_uv_index(LIVONIA_LAT, LIVONIA_LONG, current_time)
+    uv_index = calculate_uv_index(LIVONIA_LAT, LIVONIA_LONG, current_time_eastern)
     
     # Get weather data
     weather_data = get_weather_data(LIVONIA_LAT, LIVONIA_LONG)
 
     # Display header
     st.title(f"Weather & UV Index for {LOCATION_NAME}")
-    st.subheader(f"Last updated: {current_time.strftime('%B %d, %Y %I:%M %p')}")
+    st.subheader(f"Last updated: {current_time_eastern.strftime('%B %d, %Y %I:%M %p')}")
 
     # Create columns for layout
     col1, col2 = st.columns(2)
