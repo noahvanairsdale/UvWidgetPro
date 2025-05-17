@@ -1,121 +1,101 @@
 import requests
-import json
-import time
+import re
 
 def get_weather_data(latitude, longitude):
     """
-    Get current weather data for a location using the National Weather Service API
+    Fetch weather data from the National Weather Service API.
     
     Parameters:
     latitude (float): Latitude of the location
     longitude (float): Longitude of the location
     
     Returns:
-    dict: Weather data including temperature, description, humidity, and wind speed
+    dict: Weather data including temperature, conditions, and estimated cloud cover
     """
     try:
-        # Format coordinates for API
-        lat_str = f"{latitude:.4f}"
-        lon_str = f"{longitude:.4f}"
-        
-        # Use the National Weather Service API which doesn't require a key
-        # First, get the grid point information
-        points_url = f"https://api.weather.gov/points/{lat_str},{lon_str}"
-        headers = {
-            "User-Agent": "LivoniaWeatherApp/1.0 (your@email.com)",
-            "Accept": "application/json"
-        }
-        
-        # Make the API request with exponential backoff for reliability
-        max_retries = 3
-        retry_delay = 1
-        
-        for attempt in range(max_retries):
-            try:
-                response = requests.get(points_url, headers=headers, timeout=10)
-                response.raise_for_status()  # Raise exception for HTTP errors
-                break
-            except requests.exceptions.RequestException as e:
-                if attempt == max_retries - 1:
-                    raise e
-                time.sleep(retry_delay)
-                retry_delay *= 2
-        
+        # Get forecast URL
+        points_url = f"https://api.weather.gov/points/{latitude},{longitude}"
+        headers = {"User-Agent": "LivoniaWeatherApp/1.0 (your@email.com)"}
+        response = requests.get(points_url, headers=headers, timeout=10)
+        response.raise_for_status()
         points_data = response.json()
         
-        # Extract grid endpoints from the response
-        if 'properties' in points_data and 'forecast' in points_data['properties']:
-            forecast_url = points_data['properties']['forecast']
-            stations_url = points_data['properties']['observationStations']
-            
-            # Get weather forecast
-            forecast_response = requests.get(forecast_url, headers=headers, timeout=10)
-            forecast_response.raise_for_status()
-            forecast_data = forecast_response.json()
-            
-            # Get nearest observation stations
-            stations_response = requests.get(stations_url, headers=headers, timeout=10)
-            stations_response.raise_for_status()
-            stations_data = stations_response.json()
-            
-            # Get observations from nearest station
-            if 'features' in stations_data and len(stations_data['features']) > 0:
-                station_id = stations_data['features'][0]['properties']['stationIdentifier']
-                observations_url = f"https://api.weather.gov/stations/{station_id}/observations/latest"
-                
-                observations_response = requests.get(observations_url, headers=headers, timeout=10)
-                observations_response.raise_for_status()
-                observations_data = observations_response.json()
-                
-                # Extract the relevant weather information
-                if 'properties' in observations_data:
-                    properties = observations_data['properties']
-                    
-                    # Temperature - convert from C to F if necessary
-                    temperature = None
-                    if properties.get('temperature', {}).get('value') is not None:
-                        temp_c = properties['temperature']['value']
-                        temperature = round((temp_c * 9/5) + 32, 1)
-                    
-                    # Extract other weather data
-                    description = properties.get('textDescription', 'No description available')
-                    
-                    humidity = None
-                    if properties.get('relativeHumidity', {}).get('value') is not None:
-                        humidity = round(properties['relativeHumidity']['value'], 0)
-                    
-                    wind_speed = None
-                    if properties.get('windSpeed', {}).get('value') is not None:
-                        # Convert from m/s to mph
-                        wind_ms = properties['windSpeed']['value']
-                        wind_speed = round(wind_ms * 2.237, 1)
-                    
-                    # Compile weather data
-                    weather_data = {
-                        'temperature': temperature if temperature is not None else "N/A",
-                        'description': description,
-                        'humidity': humidity if humidity is not None else "N/A",
-                        'wind_speed': wind_speed if wind_speed is not None else "N/A"
-                    }
-                    
-                    return weather_data
+        # Get forecast data
+        forecast_url = points_data["properties"]["forecast"]
+        response = requests.get(forecast_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        forecast_data = response.json()
         
-        # If we get here, something went wrong with getting the observations
-        # Fallback to just forecast data
-        if 'properties' in forecast_data and 'periods' in forecast_data['properties'] and len(forecast_data['properties']['periods']) > 0:
-            current_period = forecast_data['properties']['periods'][0]
-            
-            weather_data = {
-                'temperature': current_period.get('temperature', 'N/A'),
-                'description': current_period.get('shortForecast', 'No description available'),
-                'humidity': 'N/A',  # Forecast doesn't include humidity
-                'wind_speed': current_period.get('windSpeed', 'N/A')
-            }
-            
-            return weather_data
+        # Extract current period data
+        current_period = forecast_data["properties"]["periods"][0]
         
-        raise Exception("Unable to retrieve weather data from NWS API")
+        # Estimate cloud cover from shortForecast
+        short_forecast = current_period.get("shortForecast", "").lower()
+        cloud_cover = 0
+        if "clear" in short_forecast:
+            cloud_cover = 0
+        elif "partly cloudy" in short_forecast or "partly sunny" in short_forecast:
+            cloud_cover = 50
+        elif "cloudy" in short_forecast or "overcast" in short_forecast:
+            cloud_cover = 100
+        elif "mostly cloudy" in short_forecast:
+            cloud_cover = 75
+        elif "mostly clear" in short_forecast:
+            cloud_cover = 25
         
+        return {
+            "temperature": current_period.get("temperature"),
+            "shortForecast": current_period.get("shortForecast"),
+            "relativeHumidity": current_period.get("relativeHumidity", {}).get("value"),
+            "windSpeed": current_period.get("windSpeed"),
+            "windDirection": current_period.get("windDirection"),
+            "cloud_cover": cloud_cover
+        }
     except Exception as e:
-        print(f"Error retrieving weather data: {str(e)}")
+        print(f"Error fetching weather data: {str(e)}")
+        return None
+
+def get_ozone_data(latitude, longitude):
+    """
+    Fetch ozone data (placeholder; replace with actual API).
+    
+    Parameters:
+    latitude (float): Latitude of the location
+    longitude (float): Longitude of the location
+    
+    Returns:
+    float: Total column ozone in Dobson Units
+    """
+    try:
+        # Placeholder: Use a real ozone API like CAMS (requires registration)
+        # Example: ozone_url = f"https://api.copernicus.eu/ozone?lat={latitude}&lon={longitude}"
+        # For now, return a default value
+        return 300  # Typical ozone value in Dobson Units
+    except Exception as e:
+        print(f"Error fetching ozone data: {str(e)}")
+        return 300  # Fallback value
+
+def get_epa_uv_index(latitude, longitude):
+    """
+    Fetch UV index from EPA API for Livonia, Michigan.
+    
+    Parameters:
+    latitude (float): Latitude of the location
+    longitude (float): Longitude of the location
+    
+    Returns:
+    float: EPA UV index or None if unavailable
+    """
+    try:
+        zip_code = "48154"  # Livonia ZIP code
+        epa_url = f"https://data.epa.gov/efservice/UV_HOURLY/ZIP/{zip_code}/JSON"
+        headers = {"User-Agent": "LivoniaWeatherApp/1.0 (your@email.com)"}
+        response = requests.get(epa_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        uv_data = response.json()
+        if uv_data:
+            return float(uv_data[-1].get("UV_VALUE", None))  # Get latest hourly UV index
+        return None
+    except Exception as e:
+        print(f"Error fetching EPA UV index: {str(e)}")
         return None
