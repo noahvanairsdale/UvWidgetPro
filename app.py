@@ -97,11 +97,11 @@ with col1:
         )
         # Display EPA UV index for comparison
 epa_uv = get_cached_epa_uv_index(LIVONIA_LAT, LIVONIA_LONG)
-    if epa_uv is not None:
-        st.markdown(f"**EPA UV Index**: {epa_uv:.1f} (Reference)")
-        st.markdown(f"**Difference**: {abs(uv_index - epa_uv):.1f}")
-        st.markdown("### Recommendations")
-        st.info(get_uv_recommendations(uv_index))
+if epa_uv is not None:
+    st.markdown(f"**EPA UV Index**: {epa_uv:.1f} (Reference)")
+    st.markdown(f"**Difference**: {abs(uv_index - epa_uv):.1f}")
+    st.markdown("### Recommendations")
+    st.info(get_uv_recommendations(uv_index))
     
     with col2:
         st.markdown("## Weather")
