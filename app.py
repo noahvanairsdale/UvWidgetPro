@@ -60,9 +60,13 @@ def get_cached_epa_uv_index(lat, lon):
     return get_epa_uv_index(lat, lon)
 
 # Main app
-def update_and_display():
-    current_time = datetime.datetime.now()
-    
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+# Get current time in Eastern Time
+eastern_now = datetime.now(ZoneInfo("America/New_York"))
+print("Current Eastern Time:", eastern_now.strftime("%Y-%m-%d %H:%M:%S"))
+
     # Get weather and atmospheric data
     weather_data = get_cached_weather_data(LIVONIA_LAT, LIVONIA_LONG)
     cloud_cover = weather_data.get('cloud_cover', 0) if weather_data else 0
