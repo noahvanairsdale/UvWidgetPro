@@ -68,7 +68,7 @@ def update_and_display():
     current_time_eastern = current_time_utc.astimezone(ZoneInfo('America/New_York'))
     
     # Calculate UV index
-    uv_index = calculate_uv_index(LIVONIA_LAT, LIVONIA_LONG, current_time_eastern)
+    uv_index = calculate_uv_index_with_clouds(LIVONIA_LAT, LIVONIA_LONG, current_time_eastern)
     
     # Get weather data
     weather_data = get_weather_data(LIVONIA_LAT, LIVONIA_LONG)
