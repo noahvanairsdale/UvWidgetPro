@@ -83,10 +83,10 @@ st.subheader(f"Last updated: {current_time.strftime('%B %d, %Y %I:%M %p')}")
 col1, col2 = st.columns(2)
     
 with col1:
-st.markdown("## UV Index")
-uv_color = get_uv_color(uv_index)
-uv_category = get_uv_category(uv_index)
-st.markdown(
+    st.markdown("## UV Index")
+    uv_color = get_uv_color(uv_index)
+    uv_category = get_uv_category(uv_index)
+    st.markdown(
             f"""
             <div style="background-color: {uv_color}; padding: 20px; border-radius: 10px; text-align: center;">
                 <h1 style="color: white; font-size: 48px; margin: 0;">{uv_index:.1f}</h1>
