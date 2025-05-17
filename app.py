@@ -80,7 +80,7 @@ uv_index = calculate_uv_index(LIVONIA_LAT, LIVONIA_LONG, current_time, cloud_cov
 st.title(f"Weather & UV Index for {LOCATION_NAME}")
 st.subheader(f"Last updated: {current_time.strftime('%B %d, %Y %I:%M %p')}")
     
-    col1, col2 = st.columns(2)
+col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("## UV Index")
