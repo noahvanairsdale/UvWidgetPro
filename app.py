@@ -1,7 +1,7 @@
 import streamlit as st
 import datetime
 import requests
-from uv_index_calculator import calculate_uv_index
+from uv_index_calculator import get_uv_from_open_meteo
 from weather_service import get_weather_data, get_ozone_data, get_epa_uv_index
 
 # Constants for Livonia, Michigan
