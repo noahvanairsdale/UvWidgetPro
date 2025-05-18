@@ -74,7 +74,7 @@ ozone_column = get_cached_ozone_data(LIVONIA_LAT, LIVONIA_LONG)
 aod = 0.1  # Placeholder; replace with actual AOD data if available
 
 # Calculate UV index
-uv_index = calculate_uv_index(LIVONIA_LAT, LIVONIA_LONG, eastern_now, cloud_cover, ozone_column, aod)
+uv_index = get_uv_from_open_meteo(LIVONIA_LAT, LIVONIA_LONG, eastern_now, cloud_cover, ozone_column, aod)
 
 # Display header
 st.title(f"Weather & UV Index for {LOCATION_NAME}")
